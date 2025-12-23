@@ -21,62 +21,81 @@
     <button onclick="acceptOffer()">2. Принять Offer / Answer</button>
 
     <script>
-const pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-});
+<div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px;">
+    <label><input type="checkbox" id="useVideo" checked> Камера</label>
+    <label><input type="checkbox" id="useAudio" checked> Микрофон</label>
+    <button onclick="startMedia()">Включить устройства</button>
+</div>
 
-let localStream;
+<script>
+    const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
 
-async function init() {
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        document.getElementById('localVideo').srcObject = localStream;
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    } catch (e) {
-        console.error("Ошибка доступа к камере:", e);
-    }
-}
+    let localStream;
 
-pc.ontrack = (event) => {
-    document.getElementById('remoteVideo').srcObject = event.streams[0];
-};
+    async function startMedia() {
+        const constraints = {
+            video: document.getElementById('useVideo').checked,
+            audio: document.getElementById('useAudio').checked
+        };
 
-// Ждем, пока соберутся все ICE-кандидаты, прежде чем выдавать финальный SDP
-pc.onicegatheringstatechange = () => {
-    if (pc.iceGatheringState === 'complete') {
-        document.getElementById('offerOutput').value = JSON.stringify(pc.localDescription);
-        alert("Код готов к копированию!");
-    }
-};
-
-async function createOffer() {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-}
-
-async function acceptOffer() {
-    const textarea = document.getElementById('remoteInput');
-    if (!textarea.value.trim()) {
-        alert("Сначала вставьте текст в поле!");
-        return;
-    }
-
-    try {
-        const input = JSON.parse(textarea.value);
-        if (input.type === 'offer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(input));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-        } else if (input.type === 'answer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(input));
+        if (!constraints.video && !constraints.audio) {
+            alert("Выберите хотя бы одно устройство!");
+            return;
         }
-    } catch (err) {
-        alert("Ошибка: Неверный формат JSON. Убедитесь, что скопировали текст целиком.");
-        console.error(err);
-    }
-}
 
-init();
-    </script>
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            document.getElementById('localVideo').srcObject = localStream;
+            
+            // Очищаем старые треки, если они были, и добавляем новые
+            const senders = pc.getSenders();
+            senders.forEach(sender => pc.removeTrack(sender));
+            
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            alert("Устройства активированы");
+        } catch (e) {
+            console.error("Ошибка доступа:", e);
+            alert(`Ошибка: ${e.name}. Убедитесь, что выбранные устройства подключены.`);
+        }
+    }
+
+    // Остальной код (ontrack, createOffer, acceptOffer) остается прежним
+    pc.ontrack = (event) => {
+        const remoteVideo = document.getElementById('remoteVideo');
+        if (remoteVideo.srcObject !== event.streams[0]) {
+            remoteVideo.srcObject = event.streams[0];
+        }
+    };
+
+    pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === 'complete') {
+            document.getElementById('offerOutput').value = JSON.stringify(pc.localDescription);
+        }
+    };
+
+    async function createOffer() {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+    }
+
+    async function acceptOffer() {
+        const textarea = document.getElementById('remoteInput');
+        try {
+            const input = JSON.parse(textarea.value);
+            if (input.type === 'offer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(input));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+            } else if (input.type === 'answer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(input));
+            }
+        } catch (err) {
+            alert("Ошибка JSON");
+        }
+    }
+</script>
+
 </body>
 </html>
