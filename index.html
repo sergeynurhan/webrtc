@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>WebRTC</h1>
+
+    <div class="video-container">
+        <div class="video-box">
+            <h3>My camera</h3>
+            <video id="localVideo" autoplay playsinline muted></video>
+        </div>
+
+        <div class="video-box">
+            <h3>Remote</h3>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="startButton">1. Turn on camera</button>
+        <button id="callButton" disabled>2. Call</button>
+        <button id="hangupButton" disabled>3. Turn off the call</button>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
