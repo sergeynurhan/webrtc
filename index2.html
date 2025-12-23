@@ -1,68 +1,56 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>WebRTC Minimal Demo</title>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; gap: 10px; padding: 20px; max-width: 600px; }
-        textarea { width: 100%; height: 100px; }
-        video { background: #000; width: 100%; border-radius: 8px; }
-    </style>
-</head>
-<body>
-    <h2>WebRTC Handshake</h2>
-    
-    <video id="localVideo" autoplay playsinline muted></video>
-    <video id="remoteVideo" autoplay playsinline></video>
+const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+});
 
-    <button onclick="createOffer()">1. Создать Offer (Инициатор)</button>
-    <textarea id="offerOutput" placeholder="Здесь появится ваш Offer..."></textarea>
-    
-    <textarea id="remoteInput" placeholder="Вставьте Offer или Answer сюда..."></textarea>
-    <button onclick="acceptOffer()">2. Принять Offer / Answer</button>
+let localStream;
 
-    <script>
-        const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Публичный STUN Google
-        });
+async function init() {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('localVideo').srcObject = localStream;
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    } catch (e) {
+        console.error("Ошибка доступа к камере:", e);
+    }
+}
 
-        let localStream;
+pc.ontrack = (event) => {
+    document.getElementById('remoteVideo').srcObject = event.streams[0];
+};
 
-        // Получаем доступ к камере
-        async function init() {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('localVideo').srcObject = localStream;
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+// Ждем, пока соберутся все ICE-кандидаты, прежде чем выдавать финальный SDP
+pc.onicegatheringstatechange = () => {
+    if (pc.iceGatheringState === 'complete') {
+        document.getElementById('offerOutput').value = JSON.stringify(pc.localDescription);
+        alert("Код готов к копированию!");
+    }
+};
+
+async function createOffer() {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+}
+
+async function acceptOffer() {
+    const textarea = document.getElementById('remoteInput');
+    if (!textarea.value.trim()) {
+        alert("Сначала вставьте текст в поле!");
+        return;
+    }
+
+    try {
+        const input = JSON.parse(textarea.value);
+        if (input.type === 'offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(input));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+        } else if (input.type === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(input));
         }
+    } catch (err) {
+        alert("Ошибка: Неверный формат JSON. Убедитесь, что скопировали текст целиком.");
+        console.error(err);
+    }
+}
 
-        pc.ontrack = (event) => {
-            document.getElementById('remoteVideo').srcObject = event.streams[0];
-        };
-
-        pc.onicecandidate = (e) => {
-            if (e.candidate) {
-                // В минималистичном варианте ждем окончания сбора всех ICE и выводим итоговый SDP
-                document.getElementById('offerOutput').value = JSON.stringify(pc.localDescription);
-            }
-        };
-
-        async function createOffer() {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-        }
-
-        async function acceptOffer() {
-            const input = JSON.parse(document.getElementById('remoteInput').value);
-            if (input.type === 'offer') {
-                await pc.setRemoteDescription(input);
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                document.getElementById('offerOutput').value = JSON.stringify(answer);
-            } else if (input.type === 'answer') {
-                await pc.setRemoteDescription(input);
-            }
-        }
-
-        init();
-    </script>
-</body>
-</html>
+init();
