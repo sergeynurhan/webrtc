@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless WebRTC (Google STUN)</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .manual-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+
+        .step {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Serverless WebRTC (Google STUN)</h1>
+    <p style="text-align:center">Using Google's public STUN servers. Copy and paste connection strings.</p>
+
+    <div class="video-container">
+        <div class="video-box">
+            <h3>My Camera</h3>
+            <video id="localVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="video-box">
+            <h3>Remote Stream</h3>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <div class="manual-container">
+
+        <div style="text-align: center; margin: 20px;">
+            <button id="startButton">1. Start Camera</button>
+        </div>
+
+        <div class="step" id="step-offer">
+            <h2>User A: Create Offer</h2>
+            <p>Click "Create Offer" and copy the text below. Send it to User B.</p>
+            <button id="createOfferButton" disabled>Create Offer</button>
+            <textarea id="localOffer" readonly placeholder="Your Offer will appear here..."></textarea>
+        </div>
+
+        <div class="step" id="step-answer">
+            <h2>User B: Receive Offer & Create Answer</h2>
+            <p>Paste User A's Offer here. Then click "Create Answer" and send the result back to User A.</p>
+            <textarea id="remoteOffer" placeholder="Paste Remote Offer here..."></textarea>
+            <button id="createAnswerButton" disabled>Create Answer</button>
+            <textarea id="localAnswer" readonly placeholder="Your Answer will appear here..."></textarea>
+        </div>
+
+        <div class="step" id="step-connect">
+            <h2>User A: Connect</h2>
+            <p>Paste User B's Answer here to finish the connection.</p>
+            <textarea id="remoteAnswer" placeholder="Paste Remote Answer here..."></textarea>
+            <button id="setRemoteAnswerButton" disabled>Connect (Set Answer)</button>
+        </div>
+
+    </div>
+
+    <script src="manual_google.js"></script>
+</body>
+
+</html>
