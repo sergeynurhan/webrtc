@@ -1,16 +1,32 @@
 let localStream;
-let localPeer;
-let remotePeer;
+let peer;
+let currentCall;
 
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const startButton = document.getElementById('startButton');
 const callButton = document.getElementById('callButton');
 const hangupButton = document.getElementById('hangupButton');
+const myIdDisplay = document.getElementById('my-id');
+const remoteIdInput = document.getElementById('remote-id');
 
 startButton.onclick = startCamera;
 callButton.onclick = startCall;
 hangupButton.onclick = hangUp;
+
+// Initialize PeerJS
+peer = new Peer();
+
+peer.on('open', (id) => {
+    myIdDisplay.innerText = id;
+    console.log('My peer ID is: ' + id);
+});
+
+peer.on('call', (call) => {
+    // Answer the call, providing our mediaStream
+    call.answer(localStream);
+    setupCallHandlers(call);
+});
 
 async function startCamera() {
     try {
@@ -18,9 +34,9 @@ async function startCamera() {
             video: true,
             audio: true
         });
-        
+
         localVideo.srcObject = localStream;
-        
+
         startButton.disabled = true;
         callButton.disabled = false;
     } catch (error) {
@@ -29,47 +45,44 @@ async function startCamera() {
     }
 }
 
-async function startCall() {
+function startCall() {
+    const remoteId = remoteIdInput.value;
+    if (!remoteId) {
+        alert("Please enter a remote Peer ID");
+        return;
+    }
+
+    const call = peer.call(remoteId, localStream);
+    setupCallHandlers(call);
+}
+
+function setupCallHandlers(call) {
+    currentCall = call;
     callButton.disabled = true;
     hangupButton.disabled = false;
 
-    localPeer = new RTCPeerConnection();
-    remotePeer = new RTCPeerConnection();
-
-    localPeer.onicecandidate = (event) => {
-        if (event.candidate) {
-            remotePeer.addIceCandidate(event.candidate);
-        }
-    };
-    remotePeer.onicecandidate = (event) => {
-        if (event.candidate) {
-            localPeer.addIceCandidate(event.candidate);
-        }
-    };
-
-    remotePeer.ontrack = (event) => {
-        remoteVideo.srcObject = event.streams[0];
-    };
-
-    localStream.getTracks().forEach(track => {
-        localPeer.addTrack(track, localStream);
+    call.on('stream', (remoteStream) => {
+        // Show stream in some video/canvas element.
+        remoteVideo.srcObject = remoteStream;
     });
 
-    const offer = await localPeer.createOffer();
-    await localPeer.setLocalDescription(offer);
-    await remotePeer.setRemoteDescription(offer);
+    call.on('close', () => {
+        remoteVideo.srcObject = null;
+        hangupButton.disabled = true;
+        callButton.disabled = false;
+    });
 
-    const answer = await remotePeer.createAnswer();
-    await remotePeer.setLocalDescription(answer);
-    await localPeer.setRemoteDescription(answer);
+    call.on('error', (err) => {
+        console.error('Peer error:', err);
+        hangUp();
+    });
 }
 
 function hangUp() {
-    localPeer.close();
-    remotePeer.close();
-    localPeer = null;
-    remotePeer = null;
-    
+    if (currentCall) {
+        currentCall.close();
+    }
+
     hangupButton.disabled = true;
     callButton.disabled = false;
     remoteVideo.srcObject = null;
