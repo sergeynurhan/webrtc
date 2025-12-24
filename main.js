@@ -21,6 +21,7 @@ peer.on('open', (id) => {
     console.log('My peer ID is: ' + id);
 });
 
+// incoming call
 peer.on('call', (call) => {
     call.answer(localStream);
     setupCallHandlers(call);
