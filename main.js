@@ -14,7 +14,6 @@ startButton.onclick = startCamera;
 callButton.onclick = startCall;
 hangupButton.onclick = hangUp;
 
-// Initialize PeerJS
 peer = new Peer();
 
 peer.on('open', (id) => {
@@ -23,7 +22,6 @@ peer.on('open', (id) => {
 });
 
 peer.on('call', (call) => {
-    // Answer the call, providing our mediaStream
     call.answer(localStream);
     setupCallHandlers(call);
 });
@@ -62,7 +60,6 @@ function setupCallHandlers(call) {
     hangupButton.disabled = false;
 
     call.on('stream', (remoteStream) => {
-        // Show stream in some video/canvas element.
         remoteVideo.srcObject = remoteStream;
     });
 
